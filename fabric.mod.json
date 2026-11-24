@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "waypointcompass",
+  "version": "2.1.0",
+  "name": "Waypoint Compass",
+  "description": "[Updated 26.3] Waypoints on your HUD. N for new waypoint, M for menu, H to toggle. ",
+  "authors": [ "JHONNYCODER" ],
+  "contact": {
+    "homepage": "https://github.com/JHONNYCODER/WaypointCompass-2.0",
+    "sources": "https://github.com/JHONNYCODER/WaypointCompass-2.0",
+    "issues": "https://github.com/JHONNYCODER/WaypointCompass-2.0/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "net.waypointcompass.mod.TopCompassClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.0",
+    "minecraft": "26.3",
+    "java": ">=25"
+  } 
+}
