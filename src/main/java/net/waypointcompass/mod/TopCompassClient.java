@@ -40,7 +40,11 @@ implements ClientModInitializer {
         toggleBarKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.waypointcompass.togglebar", InputConstants.KEY_H, CATEGORY)
         );
-        HudElementRegistry.attachElementBefore((Identifier)VanillaHudElements.HOTBAR, (Identifier)Identifier.fromNamespaceAndPath((String)MOD_ID, (String)"waypoint_bar"), WaypointBarOverlay::extract);
+        HudElementRegistry.attachElementAfter(
+            VanillaHudElements.HOTBAR,
+            Identifier.fromNamespaceAndPath(MOD_ID, "waypoint_bar"),
+            WaypointBarOverlay::extract
+        );
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (newWaypointKey.consumeClick()) {
                 client.gui.setScreen((Screen)new NewWaypointScreen());

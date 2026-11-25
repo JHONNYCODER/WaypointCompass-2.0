@@ -361,6 +361,21 @@ public class WaypointBarOverlay {
             int alpha = (int)(opacity * 255.0f);
             int colorWithAlpha = alpha << 24 | wp.color & 0xFFFFFF;
 
+            // Render the waypoint icon using its configured size.
+            float waypointSize = Math.max(
+                0.5f,
+                Math.min(2.0f, wp.size)
+            );
+
+            wp.icon.render(
+                graphics,
+                mc.font,
+                xPos,
+                markerY + 5,
+                colorWithAlpha,
+                0.8f * waypointSize
+            );
+
             // Show a vertical arrow when the waypoint is within 30 blocks.
             if (dist <= 30.0) {
                 String verticalArrow;
@@ -384,23 +399,11 @@ public class WaypointBarOverlay {
                         mc.font,
                         Component.literal(verticalArrow),
                         xPos - arrowWidth / 2,
-                        markerY + 2,
+                        markerY - 1,
                         colorWithAlpha,
                         true
                     );
                 }
-            } else {
-                // Show the normal waypoint icon beyond 30 blocks.
-                float waypointSize = Math.max(0.5f, Math.min(2.0f, wp.size));
-
-                wp.icon.render(
-                    graphics,
-                    mc.font,
-                    xPos,
-                    markerY + 5,
-                    colorWithAlpha,
-                    0.8f * waypointSize
-                );
             }
 
             // Draw a directional arrow for off-screen waypoints.

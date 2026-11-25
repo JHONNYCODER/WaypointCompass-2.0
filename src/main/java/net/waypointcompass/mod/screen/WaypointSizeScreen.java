@@ -21,7 +21,7 @@ public class WaypointSizeScreen extends Screen {
     private static final int SLIDER_HEIGHT = 8;
 
     public WaypointSizeScreen(Waypoint waypoint, Screen parent) {
-        super(Component.literal("Waypoint Size"));
+        super(Component.literal("Adjust Waypoint Visibility Size"));
         this.waypoint = waypoint;
         this.parent = parent;
     }
@@ -38,14 +38,14 @@ public class WaypointSizeScreen extends Screen {
                     this.waypoint.size = 1.0f;
                     WaypointManager.getInstance().save();
                 }
-            ).bounds(cx - 65, cy + 35, 60, 20).build()
+            ).bounds(cx - 65, cy + 55, 60, 20).build()
         );
 
         this.addRenderableWidget(
             Button.builder(
                 Component.literal("Back"),
                 button -> this.goBack()
-            ).bounds(cx + 5, cy + 35, 60, 20).build()
+            ).bounds(cx + 5, cy + 55, 60, 20).build()
         );
     }
 
@@ -61,11 +61,16 @@ public class WaypointSizeScreen extends Screen {
         int cx = this.width / 2;
         int cy = this.height / 2;
 
+        float size = Math.max(
+            MIN_SIZE,
+            Math.min(MAX_SIZE, waypoint.size)
+        );
+
         graphics.centeredText(
             this.font,
             this.getTitle(),
             cx,
-            cy - 55,
+            cy - 65,
             0xFFFFFF
         );
 
@@ -73,24 +78,39 @@ public class WaypointSizeScreen extends Screen {
             this.font,
             Component.literal(waypoint.name),
             cx,
-            cy - 30,
+            cy - 40,
             waypoint.color | 0xFF000000
         );
 
-        float size = Math.max(MIN_SIZE, Math.min(MAX_SIZE, waypoint.size));
+        waypoint.icon.render(
+            graphics,
+            this.font,
+            cx - 65,
+            cy - 20,
+            waypoint.color | 0xFF000000,
+            size
+        );
 
         graphics.centeredText(
             this.font,
             Component.literal(String.format("Size: %.2fx", size)),
             cx,
-            cy - 5,
+            cy - 10,
             0xFFFFFF
+        );
+
+        graphics.centeredText(
+            this.font,
+            Component.literal("Adjust waypoint display size"),
+            cx,
+            cy + 7,
+            0xAAAAAA
         );
 
         this.drawSlider(
             graphics,
             cx - SLIDER_WIDTH / 2,
-            cy + 15
+            cy + 20
         );
     }
 
@@ -163,7 +183,7 @@ public class WaypointSizeScreen extends Screen {
         }
 
         int x = this.width / 2 - SLIDER_WIDTH / 2;
-        int y = this.height / 2 + 15;
+        int y = this.height / 2 + 20;
 
         if (event.x() >= x - 4
             && event.x() <= x + SLIDER_WIDTH + 4

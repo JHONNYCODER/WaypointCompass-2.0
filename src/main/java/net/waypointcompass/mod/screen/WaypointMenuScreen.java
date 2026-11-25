@@ -92,12 +92,21 @@ extends Screen {
             if (wp == this.copiedWaypoint) {
                 long elapsed = System.currentTimeMillis() - this.copiedAt;
 
-                if (elapsed < 900L) {
-                    float pulse = (float)Math.sin(Math.PI * elapsed / 900.0);
-                    int alpha = (int)(100 * pulse);
+                if (elapsed < 1800L) {
+                    float pulse = 0.5f + 0.5f * (float)Math.sin(
+                        elapsed * Math.PI / 250.0
+                    );
 
-                    graphics.fill(2, y, listW, y + 20, alpha << 24 | 0x55AAFF);
-                } else if (elapsed >= 1800L) {
+                    int alpha = (int)(110 * pulse);
+
+                    graphics.fill(
+                        2,
+                        y,
+                        listW,
+                        y + ENTRY_H,
+                        alpha << 24 | 0x55AAFF
+                    );
+                } else {
                     this.copiedWaypoint = null;
                 }
             }
@@ -105,7 +114,19 @@ extends Screen {
             int a = wp.visible ? 255 : 80;
             int nameColor = a << 24 | wp.color & 0xFFFFFF;
             int muted = a << 24 | 0x999999;
-            wp.icon.render(graphics, this.font, 14, y + 10, nameColor, 1.0f);
+            float waypointSize = Math.max(
+                0.5f,
+                Math.min(2.0f, wp.size)
+            );
+
+            wp.icon.render(
+                graphics,
+                this.font,
+                14,
+                y + 10,
+                nameColor,
+                waypointSize
+            );
             Object name = wp.name;
             int maxNameW = colCoords - colName - 4;
             if (this.font.width((String)name) > maxNameW) {
@@ -217,10 +238,23 @@ extends Screen {
             String coords = String.format("%.0f %.0f %.0f", wp.x, wp.y, wp.z);
             int coordsWidth = this.font.width(coords);
 
-            if (mx >= 140 && mx <= 140 + coordsWidth
-                && my >= y && my <= y + ENTRY_H
-                && my >= 22 && my < this.height - 55) {
-                String command = String.format("/tp %.0f %.0f %.0f", wp.x, wp.y, wp.z);
+            int coordsLeft = 136;
+            int coordsRight = Math.min(
+                140 + coordsWidth + 8,
+                bx - 114
+            );
+
+            if (mx >= coordsLeft && mx <= coordsRight
+                && my >= Math.max(y, startY)
+                && my < Math.min(y + ENTRY_H, this.height - 55)) {
+
+                String command = String.format(
+                    "/tp %.0f %.0f %.0f",
+                    wp.x,
+                    wp.y,
+                    wp.z
+                );
+
                 this.minecraft.keyboardHandler.setClipboard(command);
 
                 this.copiedWaypoint = wp;

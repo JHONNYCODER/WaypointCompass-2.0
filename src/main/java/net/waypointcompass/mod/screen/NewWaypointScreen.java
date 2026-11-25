@@ -59,7 +59,7 @@ extends Screen {
             this.addRenderableWidget(Button.builder(
                 Component.literal("⚙"),
                 b -> this.minecraft.gui.setScreen(new WaypointSizeScreen(this.existing, this))
-            ).bounds(cx + 85, cy - 95, 20, 20).build());
+            ).bounds(cx + 85, cy - 75, 30, 30).build());
         }
 
         String label = this.existing != null ? "Save" : "Create";
