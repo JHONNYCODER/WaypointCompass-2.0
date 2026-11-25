@@ -15,11 +15,9 @@ import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import net.fabricmc.loader.api.FabricLoader;
 import net.waypointcompass.mod.IconType;
 import net.waypointcompass.mod.Waypoint;
@@ -48,12 +46,8 @@ public class WaypointManager {
     public void load() {
         if (this.saveFile != null && this.saveFile.exists()) {
             try (FileReader reader = new FileReader(this.saveFile);){
-                Type type = new TypeToken<List<WaypointData>>(this){
-                    {
-                        Objects.requireNonNull(this$0);
-                    }
-                }.getType();
-                List dataList = (List)this.gson.fromJson((Reader)reader, type);
+                Type type = new TypeToken<List<WaypointData>>() {}.getType();
+                List<WaypointData> dataList = this.gson.fromJson(reader, type);
                 this.waypoints.clear();
                 if (dataList != null) {
                     for (WaypointData data : dataList) {

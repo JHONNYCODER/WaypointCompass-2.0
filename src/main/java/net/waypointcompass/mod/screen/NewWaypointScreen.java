@@ -15,7 +15,6 @@ package net.waypointcompass.mod.screen;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -51,7 +50,7 @@ extends Screen {
         if (this.existing != null) {
             this.nameField.setValue(this.existing.name);
         }
-        this.addRenderableWidget((GuiEventListener)this.nameField);
+        this.addRenderableWidget(this.nameField);
         this.xField = new EditBox(this.font, cx - 70, cy - 42, 48, 18, (Component)Component.literal((String)"X"));
         this.yField = new EditBox(this.font, cx - 18, cy - 42, 48, 18, (Component)Component.literal((String)"Y"));
         this.zField = new EditBox(this.font, cx + 34, cy - 42, 48, 18, (Component)Component.literal((String)"Z"));
@@ -64,12 +63,12 @@ extends Screen {
             this.yField.setValue(String.format("%.0f", this.minecraft.player.getY()));
             this.zField.setValue(String.format("%.0f", this.minecraft.player.getZ()));
         }
-        this.addRenderableWidget((GuiEventListener)this.xField);
-        this.addRenderableWidget((GuiEventListener)this.yField);
-        this.addRenderableWidget((GuiEventListener)this.zField);
+        this.addRenderableWidget(this.xField);
+        this.addRenderableWidget(this.yField);
+        this.addRenderableWidget(this.zField);
         String label = this.existing != null ? "Save" : "Create";
-        this.addRenderableWidget((GuiEventListener)Button.builder((Component)Component.literal((String)label), this::onSave).bounds(cx - 60, cy + 60, 120, 20).build());
-        this.addRenderableWidget((GuiEventListener)Button.builder((Component)Component.literal((String)"Cancel"), b -> this.close()).bounds(cx - 40, cy + 85, 80, 20).build());
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)label), this::onSave).bounds(cx - 60, cy + 60, 120, 20).build());
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)"Cancel"), b -> this.close()).bounds(cx - 40, cy + 85, 80, 20).build());
     }
 
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {

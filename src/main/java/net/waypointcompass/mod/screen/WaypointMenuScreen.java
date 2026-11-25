@@ -15,7 +15,6 @@ package net.waypointcompass.mod.screen;
 import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -36,13 +35,13 @@ extends Screen {
 
     protected void init() {
         int cx = this.width / 2;
-        this.addRenderableWidget((GuiEventListener)Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());
         String t = WaypointBarOverlay.visible ? "Hide Bar" : "Show Bar";
-        this.addRenderableWidget((GuiEventListener)Button.builder((Component)Component.literal((String)t), b -> {
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)t), b -> {
             WaypointBarOverlay.visible = !WaypointBarOverlay.visible;
             this.init();
         }).bounds(cx - 5, this.height - 45, 80, 20).build());
-        this.addRenderableWidget((GuiEventListener)Button.builder((Component)Component.literal((String)"Close"), b -> this.close()).bounds(cx + 80, this.height - 45, 60, 20).build());
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)"Close"), b -> this.close()).bounds(cx + 80, this.height - 45, 60, 20).build());
     }
 
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
