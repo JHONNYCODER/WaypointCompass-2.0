@@ -154,50 +154,23 @@ extends Screen {
     }
 
     private static int hsvToRgb(float h, float s, float v) {
-        int g;
-        int r;
         int hi = (int)(h * 6.0f);
-        float f = h * 6.0f - (float)hi;
+        float f = h * 6.0f - hi;
+
+        int value = (int)(v * 255.0f);
         int p = (int)(v * (1.0f - s) * 255.0f);
         int q = (int)(v * (1.0f - s * f) * 255.0f);
         int t = (int)(v * (1.0f - s * (1.0f - f)) * 255.0f);
-        return r << 16 | g << 8 | (switch (hi % 6) {
-            case 0 -> {
-                r = (int)(v * 255.0f);
-                g = t;
-                yield p;
-            }
-            case 1 -> {
-                r = q;
-                g = (int)(v * 255.0f);
-                yield p;
-            }
-            case 2 -> {
-                r = p;
-                g = (int)(v * 255.0f);
-                yield t;
-            }
-            case 3 -> {
-                r = p;
-                g = q;
-                yield (int)(v * 255.0f);
-            }
-            case 4 -> {
-                r = t;
-                g = p;
-                yield (int)(v * 255.0f);
-            }
-            case 5 -> {
-                r = (int)(v * 255.0f);
-                g = p;
-                yield q;
-            }
-            default -> {
-                r = 0;
-                g = 0;
-                yield 0;
-            }
-        });
+
+        return switch (hi % 6) {
+            case 0 -> (value << 16) | (t << 8) | p;
+            case 1 -> (q << 16) | (value << 8) | p;
+            case 2 -> (p << 16) | (value << 8) | t;
+            case 3 -> (p << 16) | (q << 8) | value;
+            case 4 -> (t << 16) | (p << 8) | value;
+            case 5 -> (value << 16) | (p << 8) | q;
+            default -> 0;
+        };
     }
 
     private static float hueOf(int rgb) {
