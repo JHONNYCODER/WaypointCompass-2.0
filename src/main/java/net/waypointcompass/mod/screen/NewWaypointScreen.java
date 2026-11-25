@@ -92,7 +92,7 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
-        if (event.button() != 0) {
+        if (event.button() != 1) {
             return false;
         }
 
@@ -120,7 +120,7 @@ extends Screen {
     }
 
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (this.draggingColorSlider && event.button() == 0) {
+        if (this.draggingColorSlider && event.button() == 1) {
             this.updateColorFromMouse(event.x());
             return true;
         }
@@ -129,7 +129,7 @@ extends Screen {
     }
 
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0) {
+        if (event.button() == 1) {
             this.draggingColorSlider = false;
         }
 

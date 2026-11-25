@@ -154,7 +154,7 @@ public class WaypointSizeScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
-        if (event.button() != 0) {
+        if (event.button() != 1) {
             return false;
         }
 
@@ -184,7 +184,7 @@ public class WaypointSizeScreen extends Screen {
         double dx,
         double dy
     ) {
-        if (this.draggingSlider && event.button() == 0) {
+        if (this.draggingSlider && event.button() == 1) {
             this.updateSizeFromMouse(event.x());
             return true;
         }
@@ -194,7 +194,7 @@ public class WaypointSizeScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (event.button() == 0 && this.draggingSlider) {
+        if (event.button() == 1 && this.draggingSlider) {
             this.draggingSlider = false;
             WaypointManager.getInstance().save();
             return true;

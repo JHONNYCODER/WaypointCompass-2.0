@@ -186,7 +186,7 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
-        if (event.button() != 0) {
+        if (event.button() != 1) {
             return false;
         }
 
