@@ -135,7 +135,6 @@ extends Screen {
             if (mx >= 138 && mx <= 140 + coordsWidth && my >= y && my <= y + 20) {
                 String command = String.format("/tp %.0f %.0f %.0f", wp.x, wp.y, wp.z);
                 this.minecraft.keyboardHandler.setClipboard(command);
-                this.minecraft.gui.setOverlayMessage(Component.literal("Copied: " + command), false);
                 return true;
             }
             if (mx >= (double)(bx - 110) && mx <= (double)(bx - 74) && my >= (double)by && my <= (double)(by + 14)) {
