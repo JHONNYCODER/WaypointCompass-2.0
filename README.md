@@ -4,7 +4,7 @@ A client-side Minecraft Fabric mod that displays your saved waypoints on an in-g
 
 **This repository is a community-maintained continuation of the original Waypoint Compass mod, with updates and improvements for newer Minecraft versions.**
 
-[Original Project](TODO_ORIGINAL_PROJECT_LINK) · [Source Code](https://github.com/JHONNYCODER/WaypointCompass-2.0) · [Report an Issue](https://github.com/JHONNYCODER/WaypointCompass-2.0/issues) · [Releases](https://github.com/JHONNYCODER/WaypointCompass-2.0/releases)
+[Original Project](https://modrinth.com/mod/waypointcompass/version/1.0.0) · [Source Code](https://github.com/JHONNYCODER/WaypointCompass-2.0) · [Report an Issue](https://github.com/JHONNYCODER/WaypointCompass-2.0/issues) · [Releases](https://github.com/JHONNYCODER/WaypointCompass-2.0/releases)
 
 ---
 

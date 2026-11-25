@@ -1,18 +1,18 @@
-@"
-# Compiled Java files
+# Gradle
+.gradle/
+build/
+
+# Java
 *.class
 
-# Mod JARs
-*.jar
-
-# Build output
-build/
-.gradle/
-
-# IDE files
+# IDE
 .idea/
 .vscode/
 
 # Logs
 *.log
-"@ | Set-Content -Encoding UTF8 .gitignore
+
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
