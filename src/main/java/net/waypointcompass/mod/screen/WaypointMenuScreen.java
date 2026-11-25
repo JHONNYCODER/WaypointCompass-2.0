@@ -1,15 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.GuiGraphicsExtractor
- *  net.minecraft.client.gui.components.Button
- *  net.minecraft.client.gui.components.events.GuiEventListener
- *  net.minecraft.client.gui.screens.Screen
- *  net.minecraft.client.input.MouseButtonEvent
- *  net.minecraft.network.chat.Component
- *  net.minecraft.util.Mth
- */
 package net.waypointcompass.mod.screen;
 
 import java.util.List;
@@ -43,6 +31,10 @@ extends Screen {
         String t = WaypointBarOverlay.visible ? "Hide Bar" : "Show Bar";
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)t), b -> {
             WaypointBarOverlay.toggleVisibility();
+            this.minecraft.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F)
+            );
+            this.clearWidgets();
             this.init();
         }).bounds(cx - 5, this.height - 45, 80, 20).build());
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)"Close"), b -> this.close()).bounds(cx + 80, this.height - 45, 60, 20).build());
@@ -60,11 +52,28 @@ extends Screen {
             graphics.centeredText(this.font, (Component)Component.literal((String)"No waypoints yet. Press N to add one."), cx, startY + 20, 0x888888);
             return;
         }
-        int contentHeight = waypoints.size() * 20;
-        if (contentHeight > endY - startY) {
-            int sbH = Math.max(16, (int)((float)(endY - startY) / (float)contentHeight * (float)(endY - startY)));
-            int sbY = startY + (int)((float)this.scrollOffset / (float)contentHeight * (float)(endY - startY));
-            graphics.fill(this.width - 6, sbY, this.width - 2, sbY + sbH, 0x66FFFFFF);
+        int contentHeight = waypoints.size() * ENTRY_H;
+        int viewportHeight = endY - startY;
+        int maxScroll = Math.max(0, contentHeight - viewportHeight);
+
+        if (maxScroll > 0) {
+            int sbH = Math.max(
+                16,
+                (int)((float)viewportHeight / contentHeight * viewportHeight)
+            );
+
+            int sbY = startY + (int)(
+                (float)this.scrollOffset / maxScroll
+                    * (viewportHeight - sbH)
+            );
+
+            graphics.fill(
+                this.width - 6,
+                sbY,
+                this.width - 2,
+                sbY + sbH,
+                0x66FFFFFF
+            );
         }
         graphics.enableScissor(0, startY, this.width, endY);
         int colName = 22;
@@ -75,7 +84,7 @@ extends Screen {
         graphics.text(this.font, (Component)Component.literal((String)"Coords"), colCoords, startY - 10, 0x888888, true);
         for (int i = 0; i < waypoints.size(); ++i) {
             Waypoint wp = waypoints.get(i);
-            int y = startY + i * 20 - this.scrollOffset;
+            int y = startY + i * ENTRY_H - this.scrollOffset;
             if (y < startY - 20 || y > endY) continue;
             boolean hovered = mouseY >= y && mouseY <= y + 20 && mouseX > 2 && mouseX < listW;
             graphics.fill(2, y, listW, y + 20, hovered ? 0x44888888 : 0x22666666);
@@ -161,9 +170,18 @@ extends Screen {
     }
 
     public boolean mouseScrolled(double mx, double my, double ha, double va) {
-        List<Waypoint> wps = WaypointManager.getInstance().getWaypoints();
-        int max = Math.max(0, wps.size() * 20 - (this.height - 60));
-        this.scrollOffset = Mth.clamp((int)((int)((double)this.scrollOffset - va * 20.0 * 0.5)), (int)0, (int)max);
+        int contentHeight = WaypointManager.getInstance()
+            .getWaypoints().size() * ENTRY_H;
+
+        int viewportHeight = this.height - 55 - 22;
+        int maxScroll = Math.max(0, contentHeight - viewportHeight);
+
+        this.scrollOffset = Mth.clamp(
+            (int)(this.scrollOffset - va * 10.0),
+            0,
+            maxScroll
+        );
+
         return true;
     }
 
@@ -172,7 +190,9 @@ extends Screen {
             return false;
         }
 
-        super.mouseClicked(event, bool);
+        if (super.mouseClicked(event, bool)) {
+            return true;
+        }
 
         if (this.minecraft == null) {
             return false;
@@ -182,9 +202,14 @@ extends Screen {
         int listW = this.width - 4;
         double mx = event.x();
         double my = event.y();
+
+        if (my < startY || my >= this.height - 55) {
+            return false;
+        }
+
         for (int i = 0; i < wps.size(); ++i) {
             Waypoint wp = wps.get(i);
-            int y = startY + i * 20 - this.scrollOffset;
+            int y = startY + i * ENTRY_H - this.scrollOffset;
             if (y < startY - 20 || y > this.height - 55) continue;
             int by = y + 3;
             int bx = listW - 12;
@@ -192,7 +217,9 @@ extends Screen {
             String coords = String.format("%.0f %.0f %.0f", wp.x, wp.y, wp.z);
             int coordsWidth = this.font.width(coords);
 
-            if (mx >= 138 && mx <= 140 + coordsWidth && my >= y && my <= y + 20) {
+            if (mx >= 140 && mx <= 140 + coordsWidth
+                && my >= y && my <= y + ENTRY_H
+                && my >= 22 && my < this.height - 55) {
                 String command = String.format("/tp %.0f %.0f %.0f", wp.x, wp.y, wp.z);
                 this.minecraft.keyboardHandler.setClipboard(command);
 
@@ -212,10 +239,16 @@ extends Screen {
             if (mx >= (double)(bx - 72) && mx <= (double)(bx - 36) && my >= (double)by && my <= (double)(by + 14)) {
                 wp.visible = !wp.visible;
                 WaypointManager.getInstance().save();
+                this.minecraft.getSoundManager().play(
+                    SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F)
+                );
                 return true;
             }
             if (!(mx >= (double)(bx - 34)) || !(mx <= (double)(bx - 6)) || !(my >= (double)by) || !(my <= (double)(by + 14))) continue;
             WaypointManager.getInstance().removeWaypoint(wp);
+            this.minecraft.getSoundManager().play(
+                SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F)
+            );
             return true;
         }
         return false;
@@ -239,4 +272,3 @@ extends Screen {
         return false;
     }
 }
-

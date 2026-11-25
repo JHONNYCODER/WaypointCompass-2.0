@@ -1,10 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.Font
- *  net.minecraft.client.gui.GuiGraphicsExtractor
- */
 package net.waypointcompass.mod;
 
 import java.util.Locale;
@@ -45,38 +38,119 @@ public enum IconType {
         if (scale <= 0.0f) {
             scale = 1.0f;
         }
-        switch (this.ordinal()) {
-            case 1: {
+        switch (this) {
+            case DIAMOND: {
                 this.renderDiamond(graphics, x, y, color, scale);
                 break;
             }
-            case 2: {
+            case CIRCLE: {
                 this.renderCircle(graphics, x, y, color, scale);
                 break;
             }
-            case 3: {
+            case CROSS: {
                 this.renderCross(graphics, x, y, color, scale);
                 break;
             }
-            case 4: {
+            case TRIANGLE: {
                 this.renderTriangle(graphics, x, y, color, scale);
                 break;
             }
-            case 5: {
+            case SQUARE: {
                 this.renderSquare(graphics, x, y, color, scale);
                 break;
             }
-            case 6: {
+            case HEART: {
                 this.renderHeart(graphics, x, y, color, scale);
                 break;
             }
             default: {
-                int alpha = color >> 24 & 0xFF;
-                if (alpha == 0) {
-                    alpha = 255;
+                this.renderScaledSymbol(graphics, x, y, color, scale);
+            }
+        }
+    }
+
+    private void renderScaledSymbol(
+        GuiGraphicsExtractor graphics,
+        int x,
+        int y,
+        int color,
+        float scale
+    ) {
+        String[] pixels;
+
+        switch (this) {
+            case STAR:
+                pixels = new String[] {
+                    "0001000",
+                    "0001000",
+                    "0101010",
+                    "0011100",
+                    "0111110",
+                    "0101010",
+                    "0000000"
+                };
+                break;
+
+            case ARROW:
+                pixels = new String[] {
+                    "0001000",
+                    "0001100",
+                    "1111111",
+                    "1111111",
+                    "0001100",
+                    "0001000",
+                    "0000000"
+                };
+                break;
+
+            case FLAG:
+                pixels = new String[] {
+                    "1000000",
+                    "1011100",
+                    "1011110",
+                    "1011100",
+                    "1000000",
+                    "1000000",
+                    "1111111"
+                };
+                break;
+
+            case HOME:
+                pixels = new String[] {
+                    "0001000",
+                    "0011100",
+                    "0111110",
+                    "1111111",
+                    "1100011",
+                    "1100011",
+                    "1111111"
+                };
+                break;
+
+            default:
+                return;
+        }
+
+        int pixelSize = Math.max(1, Math.round(1.5f * scale));
+        int width = pixels[0].length() * pixelSize;
+        int height = pixels.length * pixelSize;
+
+        int startX = x - width / 2;
+        int startY = y - height / 2;
+
+        int argb = IconType.argbFromColor(color);
+
+        for (int row = 0; row < pixels.length; row++) {
+            for (int col = 0; col < pixels[row].length(); col++) {
+                if (pixels[row].charAt(col) == '1') {
+                    graphics.fill(
+                        startX + col * pixelSize,
+                        startY + row * pixelSize,
+                        startX + (col + 1) * pixelSize,
+                        startY + (row + 1) * pixelSize,
+                        argb
+                    );
                 }
-                int c = alpha << 24 | color & 0xFFFFFF;
-                graphics.text(font, this.symbol, x - 4, y - 4, c, true);
             }
         }
     }
@@ -150,6 +224,10 @@ public enum IconType {
     }
 
     public static IconType fromName(String name) {
+        if (name == null || name.isBlank()) {
+            return SQUARE;
+        }
+
         try {
             return IconType.valueOf(name.toUpperCase(Locale.ROOT));
         }
@@ -158,4 +236,3 @@ public enum IconType {
         }
     }
 }
-

@@ -1,9 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.world.phys.Vec3
- */
 package net.waypointcompass.mod;
 
 import net.minecraft.world.phys.Vec3;
@@ -18,6 +12,7 @@ public class Waypoint {
     public IconType icon;
     public String dimension;
     public boolean visible = true;
+    public float size = 1.0f;
 
     public Waypoint(String name, double x, double y, double z, int color, IconType icon, String dimension) {
         this.name = name;
@@ -44,4 +39,3 @@ public class Waypoint {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }
-

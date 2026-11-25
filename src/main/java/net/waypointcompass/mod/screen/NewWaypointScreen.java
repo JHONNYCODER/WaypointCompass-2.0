@@ -1,15 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.gui.GuiGraphicsExtractor
- *  net.minecraft.client.gui.components.Button
- *  net.minecraft.client.gui.components.EditBox
- *  net.minecraft.client.gui.components.events.GuiEventListener
- *  net.minecraft.client.gui.screens.Screen
- *  net.minecraft.client.input.MouseButtonEvent
- *  net.minecraft.network.chat.Component
- */
 package net.waypointcompass.mod.screen;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -67,6 +55,13 @@ extends Screen {
         this.addRenderableWidget(this.xField);
         this.addRenderableWidget(this.yField);
         this.addRenderableWidget(this.zField);
+        if (this.existing != null) {
+            this.addRenderableWidget(Button.builder(
+                Component.literal("⚙"),
+                b -> this.minecraft.gui.setScreen(new WaypointSizeScreen(this.existing, this))
+            ).bounds(cx + 85, cy - 95, 20, 20).build());
+        }
+
         String label = this.existing != null ? "Save" : "Create";
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)label), this::onSave).bounds(cx - 60, cy + 60, 120, 20).build());
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)"Cancel"), b -> this.close()).bounds(cx - 40, cy + 85, 80, 20).build());
@@ -97,10 +92,12 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
-        super.mouseClicked(event, bool);
-
         if (event.button() != 0) {
             return false;
+        }
+
+        if (super.mouseClicked(event, bool)) {
+            return true;
         }
 
         int cx = this.width / 2;
@@ -162,6 +159,10 @@ extends Screen {
             x = Double.parseDouble(this.xField.getValue());
             y = Double.parseDouble(this.yField.getValue());
             z = Double.parseDouble(this.zField.getValue());
+
+            if (!Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z)) {
+                return;
+            }
         }
         catch (NumberFormatException e) {
             return;
@@ -223,4 +224,3 @@ extends Screen {
         return h / 6.0f;
     }
 }
-

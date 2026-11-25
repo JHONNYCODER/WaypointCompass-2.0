@@ -1,13 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  net.minecraft.client.DeltaTracker
- *  net.minecraft.client.Minecraft
- *  net.minecraft.client.gui.GuiGraphicsExtractor
- *  net.minecraft.network.chat.Component
- *  net.minecraft.world.phys.Vec3
- */
 package net.waypointcompass.mod;
 
 import java.util.Comparator;
@@ -21,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import net.waypointcompass.mod.Waypoint;
 import net.waypointcompass.mod.WaypointManager;
+import java.util.ArrayList;
 
 public class WaypointBarOverlay {
     public static boolean visible = true;
@@ -72,7 +63,19 @@ public class WaypointBarOverlay {
         );
     }
 
-    private static final Map<Waypoint, Float> smoothedPositions = new IdentityHashMap<>();
+
+    private static final Map<Waypoint, Float> layoutPositions = new IdentityHashMap<>();
+    private static final Map<Waypoint, Float> resolvedPositions = new IdentityHashMap<>();
+    private static final Map<Waypoint, Integer> markerRows = new IdentityHashMap<>();
+
+    private static final Map<Waypoint, Float> groupAnchorPositions = new IdentityHashMap<>();
+    private static final List<List<Waypoint>> collisionGroups = new ArrayList<>();
+
+
+    private static final float MARKER_GAP = 8.0f;
+    private static final float COLLISION_RELEASE_GAP = 24.0f;
+    private static final float BASE_ROW_HEIGHT = 30.0f;
+
     private static long lastRenderTime;
 
     public static void extract(GuiGraphicsExtractor graphics, DeltaTracker delta) {
@@ -91,7 +94,11 @@ public class WaypointBarOverlay {
         List<Waypoint> waypoints = WaypointManager.getInstance().getWaypoints();
 
         if (waypoints.isEmpty()) {
-            smoothedPositions.clear();
+            layoutPositions.clear();
+            resolvedPositions.clear();
+            markerRows.clear();
+            collisionGroups.clear();
+            groupAnchorPositions.clear();
             return;
         }
 
@@ -112,8 +119,6 @@ public class WaypointBarOverlay {
             .limit(MAX_WAYPOINTS)
             .toList();
 
-        smoothedPositions.keySet().retainAll(sorted);
-
         // Calculate frame time for smooth movement.
         long currentTime = System.nanoTime();
 
@@ -128,7 +133,201 @@ public class WaypointBarOverlay {
         int visibleRange = 80;
         int screenMargin = 12;
 
+        // Calculate the desired position and width of every marker.
+        layoutPositions.clear();
+
+        Map<Waypoint, Integer> markerWidths = new IdentityHashMap<>();
+
         for (Waypoint wp : sorted) {
+            float bearing = wp.getBearing(playerPos);
+            float diff = bearing - ((playerYaw + 180.0f) % 360.0f);
+
+            if (diff < -180.0f) {
+                diff += 360.0f;
+            }
+
+            if (diff > 180.0f) {
+                diff -= 360.0f;
+            }
+
+            double dist = wp.distanceTo(playerPos);
+
+            float targetX = centerX + diff * 2.0f;
+
+            int markerWidth = getMarkerWidth(
+                wp,
+                mc.font,
+                dist,
+                screenWidth - screenMargin * 2
+            );
+
+            float halfWidth = markerWidth / 2.0f;
+
+            targetX = Math.max(
+                screenMargin + halfWidth,
+                Math.min(screenWidth - screenMargin - halfWidth, targetX)
+            );
+
+            layoutPositions.put(wp, targetX);
+            markerWidths.put(wp, markerWidth);
+        }
+
+        // Update persistent collision groups after calculating marker positions.
+        markerRows.keySet().retainAll(sorted);
+        groupAnchorPositions.keySet().retainAll(sorted);
+        resolvedPositions.clear();
+
+        updateCollisionGroups(sorted, markerWidths);
+
+        // Calculate the layout using shared group anchors.
+        List<List<Waypoint>> rows = new ArrayList<>();
+
+        int availableWidth = screenWidth - screenMargin * 2;
+
+        for (List<Waypoint> group : collisionGroups) {
+            if (group.isEmpty()) {
+                continue;
+            }
+
+            float targetAnchor = 0.0f;
+
+            for (Waypoint wp : group) {
+                targetAnchor += layoutPositions.get(wp);
+            }
+
+            targetAnchor /= group.size();
+
+            Waypoint anchorWaypoint = group.get(0);
+
+            float previousAnchor = groupAnchorPositions.getOrDefault(
+                anchorWaypoint,
+                targetAnchor
+            );
+
+            float currentAnchor = previousAnchor
+                + (targetAnchor - previousAnchor) * smoothing;
+
+            groupAnchorPositions.put(anchorWaypoint, currentAnchor);
+
+            // Divide groups that cannot fit into the available screen width.
+            List<List<Waypoint>> sections = new ArrayList<>();
+            List<Waypoint> section = new ArrayList<>();
+            int sectionWidth = 0;
+
+            for (Waypoint wp : group) {
+                int width = markerWidths.get(wp);
+
+                int requiredWidth = section.isEmpty()
+                    ? width
+                    : sectionWidth + (int)MARKER_GAP + width;
+
+                if (!section.isEmpty() && requiredWidth > availableWidth) {
+                    sections.add(section);
+                    section = new ArrayList<>();
+                    sectionWidth = 0;
+                }
+
+                section.add(wp);
+
+                sectionWidth = section.size() == 1
+                    ? width
+                    : sectionWidth + (int)MARKER_GAP + width;
+            }
+
+            if (!section.isEmpty()) {
+                sections.add(section);
+            }
+
+            // Place each section without overlapping other markers.
+            for (List<Waypoint> currentSection : sections) {
+                int totalWidth = 0;
+
+                for (Waypoint wp : currentSection) {
+                    totalWidth += markerWidths.get(wp);
+                }
+
+                totalWidth += (currentSection.size() - 1) * (int)MARKER_GAP;
+
+                float sectionCenter = Math.max(
+                    screenMargin + totalWidth / 2.0f,
+                    Math.min(
+                        screenWidth - screenMargin - totalWidth / 2.0f,
+                        currentAnchor
+                    )
+                );
+
+                int selectedRow = 0;
+                boolean collision;
+
+                do {
+                    collision = false;
+
+                    float cursor = sectionCenter - totalWidth / 2.0f;
+
+                    for (Waypoint wp : currentSection) {
+                        float width = markerWidths.get(wp);
+                        float proposedX = cursor + width / 2.0f;
+                        float halfWidth = width / 2.0f;
+
+                        if (selectedRow < rows.size()) {
+                            for (Waypoint other : rows.get(selectedRow)) {
+                                float otherX = resolvedPositions.get(other);
+                                float otherHalf = markerWidths.get(other) / 2.0f;
+
+                                if (Math.abs(proposedX - otherX)
+                                    < halfWidth + otherHalf + MARKER_GAP) {
+                                    collision = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (collision) {
+                            break;
+                        }
+
+                        cursor += width + MARKER_GAP;
+                    }
+
+                    if (collision) {
+                        selectedRow++;
+                    }
+
+                } while (collision);
+
+                while (rows.size() <= selectedRow) {
+                    rows.add(new ArrayList<>());
+                }
+
+                float cursor = sectionCenter - totalWidth / 2.0f;
+
+                for (Waypoint wp : currentSection) {
+                    float width = markerWidths.get(wp);
+                    float markerX = cursor + width / 2.0f;
+
+                    resolvedPositions.put(wp, markerX);
+                    markerRows.put(wp, selectedRow);
+                    rows.get(selectedRow).add(wp);
+
+                    cursor += width + MARKER_GAP;
+                }
+            }
+        }
+
+        float maxWaypointSize = 1.0f;
+
+        for (Waypoint wp : sorted) {
+            float size = Math.max(0.5f, Math.min(2.0f, wp.size));
+            maxWaypointSize = Math.max(maxWaypointSize, size);
+        }
+
+        int rowHeight = Math.max(
+            (int)BASE_ROW_HEIGHT,
+            (int)Math.ceil(21.0f + (8.0f * maxWaypointSize * 0.8f) + 5.0f)
+        );
+
+        for (Waypoint wp : sorted) {
+            int markerY = barY + markerRows.getOrDefault(wp, 0) * rowHeight;
 
             float wpBearing = wp.getBearing(playerPos);
 
@@ -145,26 +344,8 @@ public class WaypointBarOverlay {
 
             double dist = wp.distanceTo(playerPos);
 
-            // Calculate the waypoint's actual screen position.
-            float actualX = centerX + diff * 2.0f;
-
-            // Keep the marker inside the screen.
-            float targetX = Math.max(
-                screenMargin,
-                Math.min(screenWidth - screenMargin, actualX)
-            );
-
-            // Remember the previous position and interpolate towards the target.
-            float previousX = smoothedPositions.computeIfAbsent(
-                wp,
-                key -> targetX
-            );
-
-            float currentX = previousX + (targetX - previousX) * smoothing;
-
-            smoothedPositions.put(wp, currentX);
-
-            int xPos = Math.round(currentX);
+            // Use the final collision-resolved and smoothed position.
+            int xPos = Math.round(resolvedPositions.get(wp));
 
             // Determine whether the waypoint is outside the normal compass range.
             boolean offscreen = Math.abs(diff) >= visibleRange;
@@ -203,20 +384,22 @@ public class WaypointBarOverlay {
                         mc.font,
                         Component.literal(verticalArrow),
                         xPos - arrowWidth / 2,
-                        barY + 2,
+                        markerY + 2,
                         colorWithAlpha,
                         true
                     );
                 }
             } else {
                 // Show the normal waypoint icon beyond 30 blocks.
+                float waypointSize = Math.max(0.5f, Math.min(2.0f, wp.size));
+
                 wp.icon.render(
                     graphics,
                     mc.font,
                     xPos,
-                    barY + 5,
+                    markerY + 5,
                     colorWithAlpha,
-                    0.8f
+                    0.8f * waypointSize
                 );
             }
 
@@ -228,25 +411,25 @@ public class WaypointBarOverlay {
                     mc.font,
                     Component.literal(arrow),
                     xPos - 4,
-                    barY - 1,
+                    markerY - 1,
                     colorWithAlpha,
                     true
                 );
             }
 
-            // Keep the waypoint name inside the screen.
-            int nameX = xPos - mc.font.width(wp.name) / 2;
-
-            nameX = Math.max(
-                2,
-                Math.min(screenWidth - mc.font.width(wp.name) - 2, nameX)
+            String displayName = fitText(
+                wp.name,
+                mc.font,
+                screenWidth - screenMargin * 2
             );
+
+            int nameX = xPos - mc.font.width(displayName) / 2;
 
             graphics.text(
                 mc.font,
-                Component.literal(wp.name),
+                Component.literal(displayName),
                 nameX,
-                barY + 12,
+                markerY + 12,
                 colorWithAlpha,
                 true
             );
@@ -256,20 +439,226 @@ public class WaypointBarOverlay {
 
             int distX = xPos - mc.font.width(distStr) / 2;
 
-            distX = Math.max(
-                2,
-                Math.min(screenWidth - mc.font.width(distStr) - 2, distX)
-            );
-
             graphics.text(
                 mc.font,
                 Component.literal(distStr),
                 distX,
-                barY + 21,
+                markerY + 21,
                 alpha << 24 | 0xAAAAAA,
                 true
             );
         }
+    }
+
+    private static void updateCollisionGroups(
+        List<Waypoint> activeWaypoints,
+        Map<Waypoint, Integer> markerWidths
+    ) {
+        // Remove inactive waypoints from existing groups.
+        for (int i = collisionGroups.size() - 1; i >= 0; i--) {
+            List<Waypoint> group = collisionGroups.get(i);
+
+            group.removeIf(wp -> !activeWaypoints.contains(wp));
+
+            group.sort(
+                Comparator.comparingDouble(
+                    wp -> layoutPositions.get(wp)
+                )
+            );
+
+            if (group.isEmpty()) {
+                collisionGroups.remove(i);
+            }
+        }
+
+        // Release members when their desired positions have enough clearance.
+        for (int i = collisionGroups.size() - 1; i >= 0; i--) {
+            List<Waypoint> group = collisionGroups.get(i);
+
+            if (group.size() < 2) {
+                continue;
+            }
+
+            List<List<Waypoint>> splitGroups = new ArrayList<>();
+            List<Waypoint> currentGroup = new ArrayList<>();
+
+            for (Waypoint wp : group) {
+                if (!currentGroup.isEmpty()) {
+                    Waypoint previous = currentGroup.get(currentGroup.size() - 1);
+
+                    float requiredDistance = (
+                        markerWidths.get(wp) + markerWidths.get(previous)
+                    ) / 2.0f + COLLISION_RELEASE_GAP;
+
+                    float actualDistance = Math.abs(
+                        layoutPositions.get(wp) - layoutPositions.get(previous)
+                    );
+
+                    if (actualDistance >= requiredDistance) {
+                        splitGroups.add(currentGroup);
+                        currentGroup = new ArrayList<>();
+                    }
+                }
+
+                currentGroup.add(wp);
+            }
+
+            if (!currentGroup.isEmpty()) {
+                splitGroups.add(currentGroup);
+            }
+
+            if (splitGroups.size() > 1) {
+                collisionGroups.remove(i);
+                collisionGroups.addAll(splitGroups);
+            }
+        }
+
+        // Add waypoints that do not currently belong to a group.
+        for (Waypoint wp : activeWaypoints) {
+            boolean found = false;
+
+            for (List<Waypoint> group : collisionGroups) {
+                if (group.contains(wp)) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                List<Waypoint> group = new ArrayList<>();
+                group.add(wp);
+                collisionGroups.add(group);
+            }
+        }
+
+        // Merge groups when their markers collide.
+        boolean merged;
+
+        do {
+            merged = false;
+
+            for (int i = 0; i < collisionGroups.size() && !merged; i++) {
+                List<Waypoint> first = collisionGroups.get(i);
+
+                for (int j = i + 1; j < collisionGroups.size(); j++) {
+                    List<Waypoint> second = collisionGroups.get(j);
+
+                    boolean collision = false;
+
+                    for (Waypoint a : first) {
+                        for (Waypoint b : second) {
+                            float requiredDistance = (
+                                markerWidths.get(a) + markerWidths.get(b)
+                            ) / 2.0f + MARKER_GAP;
+
+                            if (Math.abs(
+                                layoutPositions.get(a) - layoutPositions.get(b)
+                            ) < requiredDistance) {
+                                collision = true;
+                                break;
+                            }
+                        }
+
+                        if (collision) {
+                            break;
+                        }
+                    }
+
+                    if (collision) {
+                        List<Waypoint> combined = new ArrayList<>(first);
+                        combined.addAll(second);
+
+                        combined.sort(
+                            Comparator.comparingDouble(
+                                wp -> layoutPositions.get(wp)
+                            )
+                        );
+
+                        collisionGroups.set(i, combined);
+                        collisionGroups.remove(j);
+
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+        } while (merged);
+
+        // Keep groups ordered by their leftmost member.
+        collisionGroups.sort(
+            Comparator.comparingDouble(
+                group -> layoutPositions.get(group.get(0))
+            )
+        );
+
+        // Remove obsolete group anchors.
+        List<Waypoint> activeAnchors = new ArrayList<>();
+
+        for (List<Waypoint> group : collisionGroups) {
+            if (!group.isEmpty()) {
+                activeAnchors.add(group.get(0));
+            }
+        }
+
+        groupAnchorPositions.keySet().retainAll(activeAnchors);
+    }
+
+    private static int getMarkerWidth(
+        Waypoint wp,
+        net.minecraft.client.gui.Font font,
+        double dist,
+        int maxWidth
+    ) {
+        String displayName = fitText(wp.name, font, maxWidth - (int)MARKER_GAP);
+
+        int nameWidth = font.width(displayName);
+        int distanceWidth = font.width(formatDistance(dist));
+        float waypointSize = Math.max(0.5f, Math.min(2.0f, wp.size));
+
+        int iconWidth = Math.max(
+            10,
+            (int)Math.ceil(12.0f * waypointSize)
+        );
+
+        int arrowWidth = Math.max(
+            Math.max(font.width("◀"), font.width("▶")),
+            Math.max(
+                font.width("↑"),
+                Math.max(font.width("↓"), font.width("↕"))
+            )
+        );
+
+        int contentWidth = Math.max(
+            Math.max(nameWidth, distanceWidth),
+            Math.max(iconWidth, arrowWidth)
+        );
+
+        return Math.min(contentWidth + (int)MARKER_GAP, maxWidth);
+    }
+
+    private static String fitText(
+        String text,
+        net.minecraft.client.gui.Font font,
+        int maxWidth
+    ) {
+        if (font.width(text) <= maxWidth) {
+            return text;
+        }
+
+        String ellipsis = "...";
+        int availableWidth = maxWidth - font.width(ellipsis);
+
+        if (availableWidth <= 0) {
+            return ellipsis;
+        }
+
+        StringBuilder result = new StringBuilder(text);
+
+        while (!result.isEmpty() && font.width(result.toString()) > availableWidth) {
+            result.deleteCharAt(result.length() - 1);
+        }
+
+        return result + ellipsis;
     }
 
     private static String formatDistance(double dist) {
@@ -279,4 +668,3 @@ public class WaypointBarOverlay {
         return String.format("%.1fkm", dist / 1000.0);
     }
 }
-

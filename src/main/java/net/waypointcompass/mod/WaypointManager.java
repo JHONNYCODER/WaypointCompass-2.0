@@ -1,12 +1,3 @@
-/*
- * Decompiled with CFR 0.152.
- * 
- * Could not load the following classes:
- *  com.google.gson.Gson
- *  com.google.gson.GsonBuilder
- *  com.google.gson.reflect.TypeToken
- *  net.fabricmc.loader.api.FabricLoader
- */
 package net.waypointcompass.mod;
 
 import com.google.gson.Gson;
@@ -51,7 +42,9 @@ public class WaypointManager {
                 this.waypoints.clear();
                 if (dataList != null) {
                     for (WaypointData data : dataList) {
-                        this.waypoints.add(data.toWaypoint());
+                        if (data != null) {
+                            this.waypoints.add(data.toWaypoint());
+                        }
                     }
                 }
             }
@@ -118,6 +111,7 @@ public class WaypointManager {
         String icon;
         String dimension;
         Boolean visible;
+        Float size;
 
         WaypointData(Waypoint wp) {
             this.name = wp.name;
@@ -127,12 +121,23 @@ public class WaypointManager {
             this.color = wp.color;
             this.icon = wp.icon != null ? wp.icon.name() : "SQUARE";
             this.dimension = wp.dimension;
-            this.visible = wp.visible ? null : Boolean.valueOf(false);
+            this.size = wp.size;
         }
 
         Waypoint toWaypoint() {
-            Waypoint wp = new Waypoint(this.name, this.x, this.y, this.z, this.color, IconType.fromName(this.icon), this.dimension);
+            String waypointName = this.name == null || this.name.isBlank()
+                ? "Waypoint"
+                : this.name;
+
+            String waypointDimension = this.dimension == null || this.dimension.isBlank()
+                ? "minecraft:overworld"
+                : this.dimension;
+
+            Waypoint wp = new Waypoint(waypointName, this.x, this.y, this.z, this.color, IconType.fromName(this.icon), waypointDimension);
             wp.visible = this.visible == null || this.visible != false;
+            wp.size = this.size == null || !Float.isFinite(this.size)
+                ? 1.0f
+                : Math.max(0.5f, Math.min(2.0f, this.size));
             return wp;
         }
     }
