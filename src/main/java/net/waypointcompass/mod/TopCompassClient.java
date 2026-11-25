@@ -67,7 +67,7 @@ implements ClientModInitializer {
                 client.gui.setScreen((Screen)new WaypointMenuScreen());
             }
             while (toggleBarKey.consumeClick()) {
-                WaypointBarOverlay.visible = !WaypointBarOverlay.visible;
+                WaypointBarOverlay.toggleVisibility();
             }
         });
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> WaypointManager.getInstance().init());

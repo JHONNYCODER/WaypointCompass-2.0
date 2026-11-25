@@ -25,16 +25,64 @@ import net.waypointcompass.mod.WaypointManager;
 public class WaypointBarOverlay {
     public static boolean visible = true;
     private static final int MAX_WAYPOINTS = 8;
+    private static long visibilityChangedAt;
+    private static final long NOTIFICATION_DURATION = 2000L;
+
+    public static void toggleVisibility() {
+        visible = !visible;
+        visibilityChangedAt = System.currentTimeMillis();
+    }
+
+    private static void renderVisibilityNotification(GuiGraphicsExtractor graphics, Minecraft mc) {
+        if (visibilityChangedAt == 0L) {
+            return;
+        }
+
+        long elapsed = System.currentTimeMillis() - visibilityChangedAt;
+
+        if (elapsed >= NOTIFICATION_DURATION) {
+            visibilityChangedAt = 0L;
+            return;
+        }
+
+        String message = visible
+            ? "Waypoint Compass: ON"
+            : "Waypoint Compass: OFF";
+
+        int color = visible ? 0xFF55FF55 : 0xFFFF5555;
+
+        int centerX = graphics.guiWidth() / 2;
+        int y = graphics.guiHeight() - 48;
+        int textWidth = mc.font.width(message);
+
+        graphics.fill(
+            centerX - textWidth / 2 - 8,
+            y - 4,
+            centerX + textWidth / 2 + 8,
+            y + 13,
+            0xCC202020
+        );
+
+        graphics.centeredText(
+            mc.font,
+            Component.literal(message),
+            centerX,
+            y,
+            color
+        );
+    }
 
     private static final Map<Waypoint, Float> smoothedPositions = new IdentityHashMap<>();
     private static long lastRenderTime;
 
     public static void extract(GuiGraphicsExtractor graphics, DeltaTracker delta) {
+        Minecraft mc = Minecraft.getInstance();
+
+        renderVisibilityNotification(graphics, mc);
+
         if (!visible) {
             return;
         }
-
-        Minecraft mc = Minecraft.getInstance();
 
         if (mc.player == null || mc.level == null) {
             return;
@@ -97,11 +145,6 @@ public class WaypointBarOverlay {
 
             double dist = wp.distanceTo(playerPos);
 
-            float proxFade = Math.max(
-                0.0f,
-                Math.min(1.0f, (float)((dist - 5.0) / 5.0))
-            );
-
             // Calculate the waypoint's actual screen position.
             float actualX = centerX + diff * 2.0f;
 
@@ -132,23 +175,53 @@ public class WaypointBarOverlay {
                 1.0f - Math.abs(diff) / 180.0f
             );
 
-            float opacity = angularFade * proxFade;
+            float opacity = angularFade;
 
             int alpha = (int)(opacity * 255.0f);
             int colorWithAlpha = alpha << 24 | wp.color & 0xFFFFFF;
 
-            // Draw the waypoint icon.
-            wp.icon.render(
-                graphics,
-                mc.font,
-                xPos,
-                barY + 5,
-                colorWithAlpha,
-                0.8f
-            );
+            // Show a vertical arrow when the waypoint is within 30 blocks.
+            if (dist <= 30.0) {
+                String verticalArrow;
+
+                if (wp.y > playerPos.y) {
+                    verticalArrow = "↑";
+                } else if (wp.y < playerPos.y) {
+                    verticalArrow = "↓";
+                } else {
+                    verticalArrow = "↕";
+                }
+
+                // Blink the arrow when the waypoint is within 5 blocks.
+                boolean blinkVisible = dist > 5.0
+                    || (System.currentTimeMillis() / 350L) % 2L == 0L;
+
+                if (blinkVisible) {
+                    int arrowWidth = mc.font.width(verticalArrow);
+
+                    graphics.text(
+                        mc.font,
+                        Component.literal(verticalArrow),
+                        xPos - arrowWidth / 2,
+                        barY + 2,
+                        colorWithAlpha,
+                        true
+                    );
+                }
+            } else {
+                // Show the normal waypoint icon beyond 30 blocks.
+                wp.icon.render(
+                    graphics,
+                    mc.font,
+                    xPos,
+                    barY + 5,
+                    colorWithAlpha,
+                    0.8f
+                );
+            }
 
             // Draw a directional arrow for off-screen waypoints.
-            if (offscreen) {
+            if (offscreen && dist > 30.0) {
                 String arrow = diff < 0.0f ? "◀" : "▶";
 
                 graphics.text(

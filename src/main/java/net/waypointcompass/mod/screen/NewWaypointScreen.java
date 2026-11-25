@@ -99,6 +99,10 @@ extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
         super.mouseClicked(event, bool);
 
+        if (event.button() != 0) {
+            return false;
+        }
+
         int cx = this.width / 2;
         int cy = this.height / 2;
         double mx = event.x();
@@ -119,7 +123,7 @@ extends Screen {
     }
 
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
-        if (this.draggingColorSlider) {
+        if (this.draggingColorSlider && event.button() == 0) {
             this.updateColorFromMouse(event.x());
             return true;
         }
@@ -128,7 +132,10 @@ extends Screen {
     }
 
     public boolean mouseReleased(MouseButtonEvent event) {
-        this.draggingColorSlider = false;
+        if (event.button() == 0) {
+            this.draggingColorSlider = false;
+        }
+
         return super.mouseReleased(event);
     }
 
@@ -141,7 +148,7 @@ extends Screen {
 
         this.selectedColor = NewWaypointScreen.hsvToRgb(hue, 1.0f, 1.0f);
     }
-    
+
     private void onSave(Button button) {
         String dim;
         double z;

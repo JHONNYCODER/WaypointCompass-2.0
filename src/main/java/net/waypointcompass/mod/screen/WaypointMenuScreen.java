@@ -16,6 +16,8 @@ import java.util.List;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -40,7 +42,7 @@ extends Screen {
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());
         String t = WaypointBarOverlay.visible ? "Hide Bar" : "Show Bar";
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)t), b -> {
-            WaypointBarOverlay.visible = !WaypointBarOverlay.visible;
+            WaypointBarOverlay.toggleVisibility();
             this.init();
         }).bounds(cx - 5, this.height - 45, 80, 20).build());
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)"Close"), b -> this.close()).bounds(cx + 80, this.height - 45, 60, 20).build());
@@ -86,7 +88,7 @@ extends Screen {
                     int alpha = (int)(100 * pulse);
 
                     graphics.fill(2, y, listW, y + 20, alpha << 24 | 0x55AAFF);
-                } else {
+                } else if (elapsed >= 1800L) {
                     this.copiedWaypoint = null;
                 }
             }
@@ -113,16 +115,41 @@ extends Screen {
         }
         graphics.disableScissor();
 
-        if (this.copiedWaypoint != null &&
-            System.currentTimeMillis() - this.copiedAt < 1500L) {
+        if (this.copiedWaypoint != null) {
+            long elapsed = System.currentTimeMillis() - this.copiedAt;
 
-            graphics.centeredText(
-                this.font,
-                Component.literal("Copied coordinates to clipboard"),
-                cx,
-                this.height - 62,
-                0x55FF55
-            );
+            if (elapsed < 1800L) {
+                String message = "Copied coordinates to clipboard";
+
+                int toastWidth = this.font.width(message) + 24;
+                int toastHeight = 24;
+                int toastX = cx - toastWidth / 2;
+                int toastY = this.height - 82;
+
+                graphics.fill(
+                    toastX,
+                    toastY,
+                    toastX + toastWidth,
+                    toastY + toastHeight,
+                    0xDD202020
+                );
+
+                graphics.fill(
+                    toastX,
+                    toastY,
+                    toastX + toastWidth,
+                    toastY + 1,
+                    0xFF55FF55
+                );
+
+                graphics.centeredText(
+                    this.font,
+                    Component.literal(message),
+                    cx,
+                    toastY + 8,
+                    0xFF55FF55
+                );
+            }
         }
     }
 
@@ -141,7 +168,12 @@ extends Screen {
     }
 
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
+        if (event.button() != 0) {
+            return false;
+        }
+
         super.mouseClicked(event, bool);
+
         if (this.minecraft == null) {
             return false;
         }
@@ -166,6 +198,10 @@ extends Screen {
 
                 this.copiedWaypoint = wp;
                 this.copiedAt = System.currentTimeMillis();
+
+                this.minecraft.getSoundManager().play(
+                    SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F)
+                );
 
                 return true;
             }
