@@ -35,7 +35,7 @@ extends Screen {
 
     protected void init() {
         int cx = this.width / 2;
-        this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());
+        this.addRenderableWidget(Button.builder((Component)Component.literal((String)"+ New"), b -> this.minecraft.gui.setScreen((Screen)new NewWaypointScreen())).bounds(cx - 80, this.height - 45, 70, 20).build());
         String t = WaypointBarOverlay.visible ? "Hide Bar" : "Show Bar";
         this.addRenderableWidget(Button.builder((Component)Component.literal((String)t), b -> {
             WaypointBarOverlay.visible = !WaypointBarOverlay.visible;
@@ -128,6 +128,16 @@ extends Screen {
             if (y < startY - 20 || y > this.height - 55) continue;
             int by = y + 3;
             int bx = listW - 12;
+
+            String coords = String.format("%.0f %.0f %.0f", wp.x, wp.y, wp.z);
+            int coordsWidth = this.font.width(coords);
+
+            if (mx >= 138 && mx <= 140 + coordsWidth && my >= y && my <= y + 20) {
+                String command = String.format("/tp %.0f %.0f %.0f", wp.x, wp.y, wp.z);
+                this.minecraft.keyboardHandler.setClipboard(command);
+                this.minecraft.gui.setOverlayMessage(Component.literal("Copied: " + command), false);
+                return true;
+            }
             if (mx >= (double)(bx - 110) && mx <= (double)(bx - 74) && my >= (double)by && my <= (double)(by + 14)) {
                 this.minecraft.gui.setScreen((Screen)new NewWaypointScreen(wp));
                 return true;
