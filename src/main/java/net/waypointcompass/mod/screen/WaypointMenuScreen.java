@@ -28,6 +28,8 @@ public class WaypointMenuScreen
 extends Screen {
     private int scrollOffset = 0;
     private static final int ENTRY_H = 20;
+    private Waypoint copiedWaypoint;
+    private long copiedAt;
 
     public WaypointMenuScreen() {
         super((Component)Component.literal((String)"Waypoints"));
@@ -75,6 +77,20 @@ extends Screen {
             if (y < startY - 20 || y > endY) continue;
             boolean hovered = mouseY >= y && mouseY <= y + 20 && mouseX > 2 && mouseX < listW;
             graphics.fill(2, y, listW, y + 20, hovered ? 0x44888888 : 0x22666666);
+
+            if (wp == this.copiedWaypoint) {
+                long elapsed = System.currentTimeMillis() - this.copiedAt;
+
+                if (elapsed < 900L) {
+                    float pulse = (float)Math.sin(Math.PI * elapsed / 900.0);
+                    int alpha = (int)(100 * pulse);
+
+                    graphics.fill(2, y, listW, y + 20, alpha << 24 | 0x55AAFF);
+                } else {
+                    this.copiedWaypoint = null;
+                }
+            }
+
             int a = wp.visible ? 255 : 80;
             int nameColor = a << 24 | wp.color & 0xFFFFFF;
             int muted = a << 24 | 0x999999;
@@ -96,6 +112,18 @@ extends Screen {
             this.drawBtn(graphics, "Del", btnRight - 34, by, 28, mouseX, mouseY, -1996536764);
         }
         graphics.disableScissor();
+
+        if (this.copiedWaypoint != null &&
+            System.currentTimeMillis() - this.copiedAt < 1500L) {
+
+            graphics.centeredText(
+                this.font,
+                Component.literal("Copied coordinates to clipboard"),
+                cx,
+                this.height - 62,
+                0x55FF55
+            );
+        }
     }
 
     private void drawBtn(GuiGraphicsExtractor g, String label, int x, int y, int w, int mx, int my, int bg) {
@@ -135,6 +163,10 @@ extends Screen {
             if (mx >= 138 && mx <= 140 + coordsWidth && my >= y && my <= y + 20) {
                 String command = String.format("/tp %.0f %.0f %.0f", wp.x, wp.y, wp.z);
                 this.minecraft.keyboardHandler.setClipboard(command);
+
+                this.copiedWaypoint = wp;
+                this.copiedAt = System.currentTimeMillis();
+
                 return true;
             }
             if (mx >= (double)(bx - 110) && mx <= (double)(bx - 74) && my >= (double)by && my <= (double)(by + 14)) {

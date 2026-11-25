@@ -30,6 +30,7 @@ extends Screen {
     private EditBox zField;
     private int selectedColor = 0xFF5555;
     private Waypoint existing;
+    private boolean draggingColorSlider;
 
     public NewWaypointScreen() {
         super((Component)Component.literal((String)"New Waypoint"));
@@ -97,22 +98,50 @@ extends Screen {
 
     public boolean mouseClicked(MouseButtonEvent event, boolean bool) {
         super.mouseClicked(event, bool);
+
         int cx = this.width / 2;
         int cy = this.height / 2;
         double mx = event.x();
         double my = event.y();
+
         int sx = cx - 80;
         int sy = cy + 4;
         int sw = 160;
         int sh = 14;
-        if (mx >= (double)sx && mx <= (double)(sx + sw) && my >= (double)sy && my <= (double)(sy + sh)) {
-            float hue = (float)((mx - (double)sx) / (double)sw);
-            this.selectedColor = NewWaypointScreen.hsvToRgb(hue, 1.0f, 1.0f);
+
+        if (mx >= sx && mx <= sx + sw && my >= sy && my <= sy + sh) {
+            this.draggingColorSlider = true;
+            this.updateColorFromMouse(mx);
             return true;
         }
+
         return false;
     }
 
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (this.draggingColorSlider) {
+            this.updateColorFromMouse(event.x());
+            return true;
+        }
+
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    public boolean mouseReleased(MouseButtonEvent event) {
+        this.draggingColorSlider = false;
+        return super.mouseReleased(event);
+    }
+
+    private void updateColorFromMouse(double mouseX) {
+        int sx = this.width / 2 - 80;
+        int sw = 160;
+
+        float hue = (float)((mouseX - sx) / sw);
+        hue = Math.max(0.0f, Math.min(1.0f, hue));
+
+        this.selectedColor = NewWaypointScreen.hsvToRgb(hue, 1.0f, 1.0f);
+    }
+    
     private void onSave(Button button) {
         String dim;
         double z;
